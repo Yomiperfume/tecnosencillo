@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -52,12 +53,21 @@ export async function generateMetadata({
       description: article.description,
       publishedTime: article.date,
       modifiedTime: article.updated || article.date,
+      images: article.heroImage
+        ? [
+            {
+              url: article.heroImage,
+              alt: article.heroImageAlt || article.title,
+            },
+          ]
+        : undefined,
     },
 
     twitter: {
-      card: "summary_large_image",
+      card: article.heroImage ? "summary_large_image" : "summary",
       title: article.title,
       description: article.description,
+      images: article.heroImage ? [article.heroImage] : undefined,
     },
 
     robots: {
@@ -73,6 +83,61 @@ function formatDate(date: string) {
     month: "long",
     year: "numeric",
   });
+}
+
+function ArticleImage({
+  src,
+  alt,
+  credit,
+  creditUrl,
+  priority = false,
+}: {
+  src: string;
+  alt: string;
+  credit?: string;
+  creditUrl?: string;
+  priority?: boolean;
+}) {
+  return (
+    <figure className="article-featured-image">
+      <Image
+        src={src}
+        alt={alt}
+        width={1536}
+        height={1024}
+        priority={priority}
+        sizes="(max-width: 768px) 100vw, 760px"
+        style={{
+          width: "100%",
+          height: "auto",
+          borderRadius: "16px",
+        }}
+      />
+
+      {credit && (
+        <figcaption
+          style={{
+            marginTop: "8px",
+            fontSize: "0.8rem",
+            opacity: 0.75,
+          }}
+        >
+          Imagen:{" "}
+          {creditUrl ? (
+            <a
+              href={creditUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {credit}
+            </a>
+          ) : (
+            credit
+          )}
+        </figcaption>
+      )}
+    </figure>
+  );
 }
 
 export default function ArticlePage({ params }: Props) {
@@ -119,6 +184,9 @@ async function ArticleContent({ params }: Props) {
     },
     headline: article.title,
     description: article.description,
+    image: article.heroImage
+      ? [`${siteUrl}${article.heroImage}`]
+      : undefined,
     datePublished: article.date,
     dateModified: article.updated || article.date,
     author: {
@@ -206,38 +274,74 @@ async function ArticleContent({ params }: Props) {
               <p>{article.introduction}</p>
             </div>
 
+            {article.heroImage && (
+              <ArticleImage
+                src={article.heroImage}
+                alt={article.heroImageAlt || article.title}
+                credit={article.heroImageCredit}
+                creditUrl={article.heroImageCreditUrl}
+                priority
+              />
+            )}
+
             <div className="article-body">
               {article.sections.map((section, index) => (
-                <section
-                  key={section.heading}
-                  id={`section-${index + 1}`}
-                  className="professional-content-section"
-                >
-                  <span className="section-number">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
+                <div key={section.heading}>
+                  <section
+                    id={`section-${index + 1}`}
+                    className="professional-content-section"
+                  >
+                    <span className="section-number">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
 
-                  <h2>{section.heading}</h2>
+                    <h2>{section.heading}</h2>
 
-                  {section.paragraphs.map((paragraph, paragraphIndex) => (
-                    <p key={paragraphIndex}>{paragraph}</p>
-                  ))}
+                    {section.paragraphs.map((paragraph, paragraphIndex) => (
+                      <p key={paragraphIndex}>{paragraph}</p>
+                    ))}
 
-                  {section.tips && section.tips.length > 0 && (
-                    <div className="professional-tips">
-                      <div className="tips-heading">
-                        <span className="tips-icon">✓</span>
-                        <strong>Pasos recomendados</strong>
-                      </div>
-
-                      <ol>
-                        {section.tips.map((tip) => (
-                          <li key={tip}>{tip}</li>
+                    {section.links && section.links.length > 0 && (
+                      <ul className="article-resource-links">
+                        {section.links.map((link) => (
+                          <li key={link.url}>
+                            <a
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {link.label} ↗
+                            </a>
+                          </li>
                         ))}
-                      </ol>
-                    </div>
+                      </ul>
+                    )}
+
+                    {section.tips && section.tips.length > 0 && (
+                      <div className="professional-tips">
+                        <div className="tips-heading">
+                          <span className="tips-icon">✓</span>
+                          <strong>Pasos recomendados</strong>
+                        </div>
+
+                        <ol>
+                          {section.tips.map((tip) => (
+                            <li key={tip}>{tip}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+                  </section>
+
+                  {article.secondaryImage && index === 4 && (
+                    <ArticleImage
+                      src={article.secondaryImage}
+                      alt={article.secondaryImageAlt || article.title}
+                      credit={article.secondaryImageCredit}
+                      creditUrl={article.secondaryImageCreditUrl}
+                    />
                   )}
-                </section>
+                </div>
               ))}
 
               <section id="conclusion" className="professional-conclusion">
@@ -246,6 +350,30 @@ async function ArticleContent({ params }: Props) {
                 <p>{article.conclusion}</p>
               </section>
             </div>
+
+            {article.references && article.references.length > 0 && (
+              <section className="article-references">
+                <h2>Fuentes y recursos oficiales</h2>
+                <p>
+                  Consulta estas páginas para conocer las funciones,
+                  condiciones y límites actualizados de cada herramienta.
+                </p>
+
+                <ul>
+                  {article.references.map((reference) => (
+                    <li key={reference.url}>
+                      <a
+                        href={reference.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {reference.title} ↗
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             <div className="article-bottom-navigation">
               <Link href="/blog" className="back-to-blog">

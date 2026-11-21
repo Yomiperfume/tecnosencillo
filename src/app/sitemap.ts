@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { articles } from "@/lib/articles";
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://tecnosencillo.vercel.app/";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticPages = [
